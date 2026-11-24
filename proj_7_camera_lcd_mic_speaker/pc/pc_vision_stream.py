@@ -1,14 +1,32 @@
 from collections import deque
+import asyncio
+import io
+import json
 import os
 import socket
 import struct
 import sys
 import threading
 import time
+import urllib.request
+import wave
 import cv2
+
+try:
+  import av
+  import edge_tts
+except ImportError:
+  av = None
+  edge_tts = None
+
+try:
+  from gtts import gTTS
+except ImportError:
+  gTTS = None
 
 LUCKFOX_IP = os.environ.get("LUCKFOX_IP", "192.168.1.3")
 LUCKFOX_PORT = int(os.environ.get("LUCKFOX_PORT", "9001"))
+WEB_PORT = int(os.environ.get("WEB_PORT", "8080"))
 VIDEO_SOURCE_RAW = os.environ.get("VIDEO_SOURCE", "0")
 VIDEO_SOURCE = (
     int(VIDEO_SOURCE_RAW) if VIDEO_SOURCE_RAW.isdigit() else VIDEO_SOURCE_RAW
@@ -46,6 +64,96 @@ def open_capture(source):
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
   return cap, is_cam
+
+
+def _synth_free_wav(text: str) -> bytes | None:
+  if av is None or (edge_tts is None and gTTS is None):
+    return None
+  mp3_bytes = b""
+  if edge_tts is not None:
+    try:
+      async def _run():
+        comm = edge_tts.Communicate(text, "vi-VN-HoaiMyNeural")
+        buf = bytearray()
+        async for ch in comm.stream():
+          if ch.get("type") == "audio":
+            buf.extend(ch["data"])
+        return bytes(buf)
+      mp3_bytes = asyncio.run(_run())
+    except Exception:
+      mp3_bytes = b""
+  if not mp3_bytes and gTTS is not None:
+    try:
+      b = io.BytesIO()
+      gTTS(text=text, lang="vi").write_to_fp(b)
+      mp3_bytes = b.getvalue()
+    except Exception:
+      mp3_bytes = b""
+  if not mp3_bytes:
+    return None
+
+  container = av.open(io.BytesIO(mp3_bytes), format="mp3")
+  resampler = av.AudioResampler(format="s16", layout="mono", rate=16000)
+  samples = []
+  for frame in container.decode(audio=0):
+    outs = resampler.resample(frame)
+    for of in (outs if isinstance(outs, list) else [outs]):
+      raw = bytes(of.planes[0])[: of.samples * 2]
+      if raw:
+        samples.extend(struct.unpack(f"<{len(raw) // 2}h", raw))
+  for of in resampler.resample(None):
+    raw = bytes(of.planes[0])[: of.samples * 2]
+    if raw:
+      samples.extend(struct.unpack(f"<{len(raw) // 2}h", raw))
+  container.close()
+  if not samples:
+    return None
+  max_abs = max(abs(s) for s in samples)
+  if max_abs > 0:
+    scale = (32767.0 * 0.60) / float(max_abs)
+    samples = [max(-32767, min(32767, int(round(s * scale)))) for s in samples]
+  pcm = struct.pack(f"<{len(samples)}h", *samples)
+  out = io.BytesIO()
+  with wave.open(out, "wb") as wf:
+    wf.setnchannels(1)
+    wf.setsampwidth(2)
+    wf.setframerate(16000)
+    wf.writeframes(pcm)
+  return out.getvalue()
+
+
+def _free_tts_loop(stop_event: threading.Event):
+  if av is None or (edge_tts is None and gTTS is None):
+    print(
+        "[FREE TTS] Bo qua (muon loa Luckfox doc tieng Viet free, chay voi: "
+        "--with edge-tts --with gtts --with av)",
+        flush=True,
+    )
+    return
+  print("[FREE TTS] San sang dich vu doc tieng Viet FREE (Edge-TTS + gTTS) -> loa Luckfox!", flush=True)
+  base_url = f"http://{LUCKFOX_IP}:{WEB_PORT}"
+  last_id = 0
+  while not stop_event.is_set():
+    try:
+      with urllib.request.urlopen(f"{base_url}/api/tts_pending", timeout=2.0) as resp:
+        data = json.loads(resp.read().decode("utf-8", errors="ignore"))
+      req_id = int(data.get("id", 0) or 0)
+      txt = str(data.get("text", "") or "").strip()
+      if req_id > last_id and txt:
+        last_id = req_id
+        wav_bytes = _synth_free_wav(txt)
+        if wav_bytes:
+          req = urllib.request.Request(
+              f"{base_url}/api/play_wav?id={req_id}",
+              data=wav_bytes,
+              headers={"Content-Type": "audio/wav"},
+              method="POST",
+          )
+          with urllib.request.urlopen(req, timeout=15.0) as _:
+            pass
+    except Exception:
+      pass
+    time.sleep(0.25)
 
 
 def main():
@@ -101,6 +209,8 @@ def main():
 
   cap_thread = threading.Thread(target=capture_loop, daemon=True)
   cap_thread.start()
+  tts_thread = threading.Thread(target=_free_tts_loop, args=(stop_event,), daemon=True)
+  tts_thread.start()
 
   last_sent_seq = 0
   sent = 0

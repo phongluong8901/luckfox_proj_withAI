@@ -45,6 +45,12 @@ class SharedState:
 
     self.chat_log: deque[dict] = deque(maxlen=12)
 
+    self.tts_lock = threading.Lock()
+    self.tts_cond = threading.Condition(self.tts_lock)
+    self.tts_seq = 0
+    self.tts_pending_text = ""
+    self.tts_done_seq = 0
+
     self.owner_lock = threading.Lock()
     self.last_owner_ts = 0.0
     self.last_owner_name = ""
@@ -298,6 +304,39 @@ class SharedState:
     gemini_client.clear_history()
     self.update_ui(None, {"chat_log": [], "last_bot_reply": "-", "last_user_text": "-"})
 
+  def request_pc_tts(self, text: str, timeout_s: float = 6.0) -> bool:
+    clean = (text or "").strip()
+    if not clean:
+      return False
+    with self.tts_cond:
+      self.tts_seq += 1
+      req_id = self.tts_seq
+      self.tts_pending_text = clean
+      self.tts_cond.notify_all()
+      deadline = time.perf_counter() + max(1.0, float(timeout_s))
+      while self.running and self.tts_done_seq < req_id:
+        rem = deadline - time.perf_counter()
+        if rem <= 0:
+          if self.tts_seq == req_id:
+            self.tts_pending_text = ""
+          return False
+        self.tts_cond.wait(timeout=rem)
+      return self.tts_done_seq >= req_id
+
+  def get_pending_tts(self) -> dict:
+    with self.tts_lock:
+      if self.tts_pending_text and self.tts_done_seq < self.tts_seq:
+        return {"id": self.tts_seq, "text": self.tts_pending_text}
+      return {"id": 0, "text": ""}
+
+  def mark_tts_played(self, req_id: int):
+    with self.tts_cond:
+      if req_id > self.tts_done_seq:
+        self.tts_done_seq = req_id
+      if req_id >= self.tts_seq:
+        self.tts_pending_text = ""
+      self.tts_cond.notify_all()
+
   def submit_chat(self, source: str, text: str = "", wav_bytes: bytes | None = None):
     with self.chat_cond:
       self.chat_queue.append({
@@ -471,3 +510,5 @@ class SharedState:
       self.speak_cond.notify_all()
     with self.chat_cond:
       self.chat_cond.notify_all()
+    with self.tts_cond:
+      self.tts_cond.notify_all()

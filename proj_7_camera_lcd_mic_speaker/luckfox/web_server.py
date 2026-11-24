@@ -85,6 +85,10 @@ def make_handler(state):
         self._send_json(200, state.get_config())
         return
 
+      if path == "/api/tts_pending":
+        self._send_json(200, state.get_pending_tts())
+        return
+
       if path == "/events":
         _set_nodelay(self.connection)
         self.send_response(200)
@@ -173,6 +177,35 @@ def make_handler(state):
 
     def do_POST(self):
       path = self.path.split("?", 1)[0]
+      if path == "/api/play_wav":
+        try:
+          length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+          length = 0
+        if length < 44 or length > 2 * 1024 * 1024:
+          self._send_json(400, {"ok": False, "err": "Invalid WAV size"})
+          return
+        wav_data = self.rfile.read(length)
+        if wav_data[:4] != b"RIFF" or wav_data[8:12] != b"WAVE":
+          self._send_json(400, {"ok": False, "err": "Not a WAV file"})
+          return
+        wav_path = "/dev/shm/pc_tts_reply.wav"
+        tmp_path = wav_path + ".tmp"
+        with open(tmp_path, "wb") as f:
+          f.write(wav_data)
+        os.replace(tmp_path, wav_path)
+        audio_io.play_wav_file(wav_path)
+        req_id = 0
+        if "id=" in self.path:
+          try:
+            req_id = int(self.path.split("id=", 1)[1].split("&", 1)[0])
+          except ValueError:
+            req_id = 0
+        if req_id > 0:
+          state.mark_tts_played(req_id)
+        self._send_json(200, {"ok": True})
+        return
+
       body = self._read_json_body()
 
       if path == "/api/config":

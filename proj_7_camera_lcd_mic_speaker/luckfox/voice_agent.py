@@ -161,9 +161,14 @@ def _handle_chat(state, item: dict):
   print(f"[GEMINI] {owner_name} -> {reply}", flush=True)
   state.set_bot_mood("speaking", extra_upd)
 
-  if gemini_client.tts_gemini(reply, GEMINI_REPLY_WAV):
+  tts_provider = os.environ.get("TTS_PROVIDER", "free").strip().lower()
+  spoke_ok = False
+  if tts_provider != "gemini":
+    spoke_ok = state.request_pc_tts(reply, timeout_s=6.0)
+  if not spoke_ok and gemini_client.tts_gemini(reply, GEMINI_REPLY_WAV):
     play_wav_file(GEMINI_REPLY_WAV)
-  else:
+    spoke_ok = True
+  if not spoke_ok:
     play_soft_chime()
 
   state.set_bot_mood("idle")
