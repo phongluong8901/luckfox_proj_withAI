@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Luckfox Vision AI · YOLOv8n-Seg</title>
+    <style>
+        :root {
+            --bg: #090d16;
+            --card: rgba(17, 24, 39, 0.9);
+            --surface: #0b101b;
+            --border: rgba(148, 163, 184, 0.14);
+            --border-strong: rgba(148, 163, 184, 0.25);
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --emerald: #22c55e;
+            --crimson: #ef4444;
+            --amber: #f59e0b;
+            --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+            --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 18px 16px 28px;
+            min-height: 100vh;
+            background:
+                radial-gradient(900px 420px at 12% -8%, rgba(56, 189, 248, 0.12), transparent 60%),
+                radial-gradient(700px 360px at 92% 4%, rgba(34, 197, 94, 0.08), transparent 55%),
+                var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .topbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(34, 197, 94, 0.2));
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .brand p {
+            margin: 2px 0 0;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .pill b {
+            font-family: var(--mono);
+            color: var(--text);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--amber);
+        }
+
+        .dot.ok {
+            background: var(--emerald);
+            animation: pulseDot 2s infinite;
+        }
+
+        .dot.err {
+            background: var(--crimson);
+        }
+
+        @keyframes pulseDot {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+            70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-family: var(--sans);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+            background: #2563eb;
+            transition: filter 0.18s ease, background 0.18s ease;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn.green {
+            background: #16a34a;
+        }
+
+        .btn.ghost {
+            background: var(--card);
+            border-color: var(--border-strong);
+            color: var(--text);
+        }
+
+        .btn.ghost.off {
+            color: var(--muted);
+            border-color: var(--border);
+        }
+
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 860px) {
+            .kpi-strip {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .kpi-strip {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .kpi {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 9px 12px;
+        }
+
+        .kpi-label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 3px;
+        }
+
+        .kpi-val {
+            font-family: var(--mono);
+            font-variant-numeric: tabular-nums;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .kpi-val small {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--muted);
+        }
+
+        .kpi-val.accent {
+            color: var(--accent);
+        }
+
+        .kpi-val.good {
+            color: #4ade80;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 620px) minmax(0, 1fr);
+            gap: 14px;
+            align-items: start;
+        }
+
+        .layout > div {
+            min-width: 0;
+        }
+
+        @media (max-width: 880px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 13px 14px;
+            margin-bottom: 12px;
+        }
+
+        .card:last-child {
+            margin-bottom: 0;
+        }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .card-head h3 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .video-card {
+            padding: 10px;
+        }
+
+        .stage {
+            position: relative;
+            display: block;
+            width: 100%;
+            max-width: 620px;
+            max-height: 465px;
+            aspect-ratio: 4 / 3;
+            background: radial-gradient(circle at 50% 50%, #111827 0%, #05070c 100%);
+            border: 1px solid var(--border-strong);
+            border-radius: 9px;
+            overflow: hidden;
+        }
+
+        .stage-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 3;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: rgba(9, 13, 22, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            font-size: 11px;
+            font-weight: 600;
+            color: #e2e8f0;
+            pointer-events: none;
+        }
+
+        .stage-badge .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--crimson);
+        }
+
+        .stage-badge.paused .live-dot {
+            background: var(--muted);
+        }
+
+        .stage img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .stage canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        details.json-drawer {
+            margin-top: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        details.json-drawer summary {
+            padding: 8px 11px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            user-select: none;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        details.json-drawer summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.json-drawer[open] summary {
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        pre {
+            margin: 0;
+            padding: 10px 11px;
+            overflow: auto;
+            max-width: 100%;
+            max-height: 140px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: var(--mono);
+            font-size: 11px;
+            line-height: 1.45;
+            color: #fde68a;
+            background: #070a11;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .range-scale {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .val-pill {
+            font-family: var(--mono);
+            font-variant-numeric: tabular-nums;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .chip {
+            border: 1px solid var(--border-strong);
+            background: var(--surface);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .chip.active {
+            background: rgba(56, 189, 248, 0.18);
+            border-color: var(--accent);
+            color: #e0f2fe;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 0;
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border-strong);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-family: var(--sans);
+            font-size: 12px;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent);
+        }
+
+        .counts-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            min-height: 28px;
+        }
+
+        .count-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .count-item b {
+            font-family: var(--mono);
+            color: #4ade80;
+        }
+
+        .hint {
+            font-size: 11.5px;
+            color: var(--muted);
+            margin: 6px 0 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <path d="M14 17h7" />
+                        <path d="M17.5 14v7" />
+                    </svg>
+                </div>
+                <div>
+                    <h1>Luckfox Vision AI · YOLOv8n</h1>
+                    <p>RV1106G3 1 TOPS NPU · Detection & Instance Segmentation</p>
+                </div>
+            </div>
+            <div class="topbar-actions">
+                <div class="pill">Task <b id="taskType">-</b></div>
+                <div class="pill">Model <b id="modelSize">-</b></div>
+                <div class="pill">Mode <b id="mode">-</b></div>
+                <div class="pill">Dec <b id="decoder">-</b></div>
+                <div class="pill">
+                    <span id="connDot" class="dot"></span>
+                    SSE <b id="conn">...</b>
+                </div>
+                <button id="toggleMask" class="btn green" type="button">Masking: BẬT</button>
+                <button id="toggleVid" class="btn ghost" type="button">
+                    <span id="toggleVidText">Tắt Video Preview</span>
+                </button>
+            </div>
+        </header>
+
+        <section class="kpi-strip">
+            <div class="kpi">
+                <div class="kpi-label">FPS Thực</div>
+                <div class="kpi-val good"><span id="fps">0.0</span></div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">NPU Cap</div>
+                <div class="kpi-val accent"><span id="cap">0.0</span> <small>FPS</small></div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Total</div>
+                <div class="kpi-val"><span id="tot">0.0</span> <small>ms</small></div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">NPU</div>
+                <div class="kpi-val"><span id="npu">0.0</span> <small>ms</small></div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Dec / Post</div>
+                <div class="kpi-val"><span id="dec">0.0</span> / <span id="post">0.0</span> <small>ms</small></div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Đối tượng</div>
+                <div class="kpi-val"><span id="oc">0</span></div>
+            </div>
+        </section>
+
+        <div class="layout">
+            <div>
+                <div class="card video-card">
+                    <div id="stage" class="stage">
+                        <div id="stageBadge" class="stage-badge">
+                            <span class="live-dot"></span>
+                            <span id="stageBadgeText">LIVE STREAM</span>
+                        </div>
+                        <img id="vid" src="/stream" alt="Live NPU Stream" />
+                        <canvas id="ov"></canvas>
+                    </div>
+                    <details class="json-drawer">
+                        <summary>
+                            <span>Raw NPU Output (JSON)</span>
+                            <span style="font-family:var(--mono);font-size:11px">Seq #<span id="seqNum">0</span></span>
+                        </summary>
+                        <pre id="out">Loading...</pre>
+                    </details>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-head">
+                        <h3>Masking (Segmentation)</h3>
+                        <span id="maskStatusPill" class="val-pill">Đang bật</span>
+                    </div>
+                    <div class="row" style="margin-top:0;justify-content:space-between;margin-bottom:10px">
+                        <span style="font-size:12px;color:var(--muted)">Phủ lớp mask màu theo từng vật thể</span>
+                        <button id="maskSwitchBtn" class="btn green" type="button">Tắt Masking</button>
+                    </div>
+                    <div class="card-head" style="margin-bottom:6px">
+                        <span style="font-size:12px;color:var(--muted);font-weight:600">Độ mờ Mask (Opacity)</span>
+                        <span id="maskAlphaVal" class="val-pill">0.42</span>
+                    </div>
+                    <input id="maskAlphaSlider" type="range" min="0.15" max="0.80" step="0.05" value="0.42" />
+                    <div class="range-scale">
+                        <span>0.15 · Trong suốt nhẹ</span>
+                        <span>0.80 · Đậm rõ</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <h3>Ngưỡng tin cậy (Confidence)</h3>
+                        <span id="confVal" class="val-pill">0.35</span>
+                    </div>
+                    <input id="confSlider" type="range" min="0.20" max="0.85" step="0.01" value="0.35" />
+                    <div class="range-scale">
+                        <span>0.20 · Bắt nhạy hơn</span>
+                        <span>0.85 · Ít nhận nhầm</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <h3>Bộ lọc vật thể (Class Filter)</h3>
+                    </div>
+                    <div id="classChips" class="chips"></div>
+                    <div class="row">
+                        <input id="customClasses" type="text" placeholder="Hoặc nhập tên class (vd: person, bottle, cup)" />
+                        <button id="applyClassesBtn" class="btn" type="button">Áp dụng</button>
+                    </div>
+                    <p class="hint">Chọn "Tất cả" để nhận diện đủ 80 lớp COCO, hoặc bấm chọn các loại vật thể muốn theo dõi.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <h3>Thống kê trực tiếp</h3>
+                    </div>
+                    <div id="countsBox" class="counts-box">
+                        <span class="hint" style="margin:0">Chưa phát hiện vật thể nào.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const stage = document.getElementById('stage');
+        const img = document.getElementById('vid');
+        const cv = document.getElementById('ov');
+        const ctx = cv.getContext('2d');
+        const toggleBtn = document.getElementById('toggleVid');
+        const toggleVidText = document.getElementById('toggleVidText');
+        const toggleMaskBtn = document.getElementById('toggleMask');
+        const maskSwitchBtn = document.getElementById('maskSwitchBtn');
+        const maskStatusPill = document.getElementById('maskStatusPill');
+        const maskAlphaSlider = document.getElementById('maskAlphaSlider');
+        const maskAlphaVal = document.getElementById('maskAlphaVal');
+        const stageBadge = document.getElementById('stageBadge');
+        const stageBadgeText = document.getElementById('stageBadgeText');
+        const connEl = document.getElementById('conn');
+        const connDot = document.getElementById('connDot');
+        const confSlider = document.getElementById('confSlider');
+        const confVal = document.getElementById('confVal');
+        const classChips = document.getElementById('classChips');
+        const customClasses = document.getElementById('customClasses');
+        const applyClassesBtn = document.getElementById('applyClassesBtn');
+        const countsBox = document.getElementById('countsBox');
+
+        const maskCv = document.createElement('canvas');
+        const maskCtx = maskCv.getContext('2d');
+
+        const PRESET_CLASSES = [
+            'person', 'cell phone', 'laptop', 'bottle', 'cup',
+            'chair', 'book', 'backpack', 'cat', 'dog', 'car', 'motorcycle'
+        ];
+        const PALETTE = [
+            { hex: '#4ade80', rgb: [74, 222, 128] },
+            { hex: '#38bdf8', rgb: [56, 189, 248] },
+            { hex: '#fbbf24', rgb: [251, 191, 36] },
+            { hex: '#f472b6', rgb: [244, 114, 182] },
+            { hex: '#a78bfa', rgb: [167, 139, 250] },
+            { hex: '#fb7185', rgb: [251, 113, 133] },
+            { hex: '#2dd4bf', rgb: [45, 212, 191] },
+            { hex: '#f97316', rgb: [249, 115, 22] }
+        ];
+
+        let previewOn = true;
+        let maskEnabled = true;
+        let maskAlpha = 0.42;
+        let hasSegModel = false;
+        let activeClasses = new Set();
+        let lastFrameData = null;
+
+        function syncMaskButtons() {
+            if (maskEnabled) {
+                toggleMaskBtn.textContent = 'Masking: BẬT';
+                toggleMaskBtn.className = 'btn green';
+                maskSwitchBtn.textContent = 'Tắt Masking';
+                maskSwitchBtn.className = 'btn ghost';
+                maskStatusPill.textContent = hasSegModel ? 'Đang bật' : 'Chờ model Seg';
+            } else {
+                toggleMaskBtn.textContent = 'Masking: TẮT';
+                toggleMaskBtn.className = 'btn ghost off';
+                maskSwitchBtn.textContent = 'Bật Masking';
+                maskSwitchBtn.className = 'btn green';
+                maskStatusPill.textContent = 'Đang tắt';
+            }
+        }
+
+        function drawMask(m, rgb, bx, by, bw, bh, sx, sy) {
+            if (!m || !m.b64 || !m.w || !m.h || !m.rect) return;
+            const mw = m.w, mh = m.h;
+            if (maskCv.width !== mw || maskCv.height !== mh) {
+                maskCv.width = mw;
+                maskCv.height = mh;
+            }
+            const raw = atob(m.b64);
+            const imgData = maskCtx.createImageData(mw, mh);
+            const data = imgData.data;
+            const alpha = Math.round(maskAlpha * 255);
+            const total = mw * mh;
+            for (let i = 0; i < total; i++) {
+                const byteVal = raw.charCodeAt(i >> 3);
+                if (byteVal & (1 << (i & 7))) {
+                    const p = i << 2;
+                    data[p] = rgb[0];
+                    data[p + 1] = rgb[1];
+                    data[p + 2] = rgb[2];
+                    data[p + 3] = alpha;
+                }
+            }
+            maskCtx.putImageData(imgData, 0, 0);
+
+            const [rx1, ry1, rx2, ry2] = m.rect;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(bx, by, bw, bh);
+            ctx.clip();
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(maskCv, rx1 * sx, ry1 * sy, (rx2 - rx1) * sx, (ry2 - ry1) * sy);
+            ctx.restore();
+        }
+
+        function drawCornerBox(x, y, w, h, color) {
+            const c = Math.min(14, Math.max(6, Math.min(w, h) * 0.2));
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.55;
+            ctx.strokeRect(x, y, w, h);
+
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(x, y + c); ctx.lineTo(x, y); ctx.lineTo(x + c, y);
+            ctx.moveTo(x + w - c, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + c);
+            ctx.moveTo(x + w, y + h - c); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w - c, y + h);
+            ctx.moveTo(x + c, y + h); ctx.lineTo(x, y + h); ctx.lineTo(x, y + h - c);
+            ctx.stroke();
+        }
+
+        function drawDets(d) {
+            if (!d) return;
+            const cw = stage.clientWidth, ch = stage.clientHeight;
+            if (!cw || !ch) return;
+            if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+            ctx.clearRect(0, 0, cw, ch);
+
+            const sx = cw / (d.w || 320);
+            const sy = ch / (d.h || 240);
+            for (const o of (d.dets || [])) {
+                const [x1, y1, x2, y2] = o.box;
+                const bx = x1 * sx, by = y1 * sy;
+                const bw = (x2 - x1) * sx, bh = (y2 - y1) * sy;
+                const pal = PALETTE[Math.abs(o.cls || 0) % PALETTE.length];
+
+                if (maskEnabled && o.mask) {
+                    drawMask(o.mask, pal.rgb, bx, by, bw, bh, sx, sy);
+                }
+
+                drawCornerBox(bx, by, bw, bh, pal.hex);
+
+                const txt = `${o.label} ${(o.score * 100).toFixed(0)}%`;
+                ctx.font = '600 12px system-ui, -apple-system, sans-serif';
+                const tw = ctx.measureText(txt).width + 12;
+                const lx = Math.max(3, Math.min(cw - tw - 3, bx));
+                const ly = Math.max(22, by - 3);
+
+                ctx.fillStyle = 'rgba(9, 13, 22, 0.84)';
+                ctx.fillRect(lx, ly - 18, tw, 19);
+                ctx.strokeStyle = pal.hex;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(lx, ly - 18, tw, 19);
+
+                ctx.fillStyle = pal.hex;
+                ctx.fillText(txt, lx + 6, ly - 4);
+            }
+        }
+
+        function renderChips() {
+            classChips.textContent = '';
+
+            const allBtn = document.createElement('button');
+            allBtn.type = 'button';
+            allBtn.className = 'chip' + (activeClasses.size === 0 ? ' active' : '');
+            allBtn.textContent = 'Tất cả (80)';
+            allBtn.addEventListener('click', () => {
+                activeClasses.clear();
+                customClasses.value = '';
+                renderChips();
+                pushConfig({ classes: [] });
+            });
+            classChips.appendChild(allBtn);
+
+            for (const cls of PRESET_CLASSES) {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'chip' + (activeClasses.has(cls) ? ' active' : '');
+                b.textContent = cls;
+                b.addEventListener('click', () => {
+                    if (activeClasses.has(cls)) activeClasses.delete(cls);
+                    else activeClasses.add(cls);
+                    customClasses.value = Array.from(activeClasses).join(', ');
+                    renderChips();
+                    pushConfig({ classes: Array.from(activeClasses) });
+                });
+                classChips.appendChild(b);
+            }
+        }
+
+        function renderCounts(counts) {
+            countsBox.textContent = '';
+            const entries = Object.entries(counts || {});
+            if (!entries.length) {
+                const empty = document.createElement('span');
+                empty.className = 'hint';
+                empty.style.margin = '0';
+                empty.textContent = 'Chưa phát hiện vật thể nào.';
+                countsBox.appendChild(empty);
+                return;
+            }
+            for (const [label, cnt] of entries) {
+                const item = document.createElement('div');
+                item.className = 'count-item';
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = label;
+                const valB = document.createElement('b');
+                valB.textContent = '× ' + cnt;
+                item.appendChild(nameSpan);
+                item.appendChild(valB);
+                countsBox.appendChild(item);
+            }
+        }
+
+        async function pushConfig(payload) {
+            try {
+                const r = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const d = await r.json();
+                if (d.ok) {
+                    if (typeof d.conf === 'number') {
+                        confSlider.value = d.conf.toFixed(2);
+                        confVal.textContent = d.conf.toFixed(2);
+                    }
+                    if (Array.isArray(d.classes)) {
+                        activeClasses = new Set(d.classes);
+                        customClasses.value = d.classes.join(', ');
+                        renderChips();
+                    }
+                    if (typeof d.mask === 'boolean') {
+                        maskEnabled = d.mask;
+                        syncMaskButtons();
+                    }
+                }
+            } catch (e) { }
+        }
+
+        async function loadConfig() {
+            try {
+                const r = await fetch('/api/config');
+                const d = await r.json();
+                if (typeof d.conf === 'number') {
+                    confSlider.value = d.conf.toFixed(2);
+                    confVal.textContent = d.conf.toFixed(2);
+                }
+                if (Array.isArray(d.classes)) {
+                    activeClasses = new Set(d.classes);
+                    customClasses.value = d.classes.join(', ');
+                }
+                if (typeof d.mask === 'boolean') {
+                    maskEnabled = d.mask;
+                }
+            } catch (e) { }
+            syncMaskButtons();
+            renderChips();
+        }
+
+        function handleToggleMask() {
+            maskEnabled = !maskEnabled;
+            syncMaskButtons();
+            if (lastFrameData) drawDets(lastFrameData);
+            pushConfig({ mask: maskEnabled });
+        }
+
+        toggleMaskBtn.addEventListener('click', handleToggleMask);
+        maskSwitchBtn.addEventListener('click', handleToggleMask);
+
+        maskAlphaSlider.addEventListener('input', () => {
+            maskAlpha = Number(maskAlphaSlider.value);
+            maskAlphaVal.textContent = maskAlpha.toFixed(2);
+            if (lastFrameData) drawDets(lastFrameData);
+        });
+
+        confSlider.addEventListener('input', () => {
+            confVal.textContent = Number(confSlider.value).toFixed(2);
+        });
+
+        confSlider.addEventListener('change', () => {
+            pushConfig({ conf: Number(confSlider.value) });
+        });
+
+        function applyCustomClasses() {
+            const list = customClasses.value
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+            activeClasses = new Set(list);
+            renderChips();
+            pushConfig({ classes: list });
+        }
+
+        applyClassesBtn.addEventListener('click', applyCustomClasses);
+        customClasses.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') applyCustomClasses();
+        });
+
+        function applyStatus(d) {
+            lastFrameData = d;
+            hasSegModel = Boolean(d.has_seg);
+            if (typeof d.mask === 'boolean' && d.mask !== maskEnabled) {
+                maskEnabled = d.mask;
+            }
+            syncMaskButtons();
+
+            document.getElementById('fps').textContent = (d.fps || 0).toFixed(1);
+            document.getElementById('cap').textContent = (d.cap_fps || 0).toFixed(1);
+            document.getElementById('tot').textContent = (d.total_ms || 0).toFixed(1);
+            document.getElementById('npu').textContent = (d.npu_ms || 0).toFixed(1);
+            document.getElementById('dec').textContent = (d.dec_ms || 0).toFixed(1);
+            document.getElementById('post').textContent = (d.post_ms || 0).toFixed(1);
+            document.getElementById('oc').textContent = (d.dets || []).length;
+            document.getElementById('seqNum').textContent = d.seq || 0;
+            document.getElementById('taskType').textContent = hasSegModel ? 'SEG' : 'DET';
+            document.getElementById('modelSize').textContent = d.model_size || '-';
+            document.getElementById('mode').textContent = d.daemon_mode === 'binary' ? 'BIN' : (d.daemon_mode === 'shm' ? 'SHM' : (d.daemon_mode || '-'));
+            document.getElementById('decoder').textContent = (d.decoder || '-').toUpperCase();
+            document.getElementById('out').textContent = d.stdout || '';
+            renderCounts(d.counts);
+            drawDets(d);
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            previewOn = !previewOn;
+            if (previewOn) {
+                img.style.display = 'block';
+                img.src = '/stream?t=' + Date.now();
+                toggleVidText.textContent = 'Tắt Video Preview';
+                toggleBtn.classList.remove('off');
+                stageBadge.classList.remove('paused');
+                stageBadgeText.textContent = 'LIVE STREAM';
+            } else {
+                img.removeAttribute('src');
+                img.style.display = 'none';
+                toggleVidText.textContent = 'Bật Video Preview';
+                toggleBtn.classList.add('off');
+                stageBadge.classList.add('paused');
+                stageBadgeText.textContent = 'PREVIEW TẮT (ONLY OVERLAY)';
+            }
+        });
+
+        const es = new EventSource('/events');
+        es.onopen = () => {
+            connEl.textContent = 'OK';
+            connEl.style.color = '#4ade80';
+            connDot.className = 'dot ok';
+        };
+        es.onerror = () => {
+            connEl.textContent = 'WAIT';
+            connEl.style.color = '#fca5a5';
+            connDot.className = 'dot err';
+        };
+        es.onmessage = (ev) => {
+            try {
+                applyStatus(JSON.parse(ev.data));
+            } catch (e) { }
+        };
+
+        loadConfig();
+    </script>
+</body>
+
+</html>
