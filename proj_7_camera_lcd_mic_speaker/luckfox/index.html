@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LUCK-BOT · AI Desk Robot Studio</title>
+    <style>
+        :root {
+            --bg: #070b14;
+            --card: rgba(15, 23, 42, 0.88);
+            --surface: #0b1120;
+            --border: rgba(148, 163, 184, 0.14);
+            --border-strong: rgba(148, 163, 184, 0.28);
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --cyan: #00f2ce;
+            --blue: #3b82f6;
+            --green: #22c55e;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+            --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px 18px 28px;
+            min-height: 100vh;
+            background:
+                radial-gradient(900px 440px at 10% -5%, rgba(0, 242, 206, 0.10), transparent 60%),
+                radial-gradient(800px 400px at 92% 0%, rgba(59, 130, 246, 0.10), transparent 55%),
+                var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+        }
+
+        .wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .topbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(0, 242, 206, 0.22), rgba(59, 130, 246, 0.22));
+            border: 1px solid rgba(0, 242, 206, 0.45);
+            font-size: 19px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .brand p {
+            margin: 2px 0 0;
+            font-size: 11.5px;
+            color: var(--muted);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .pill b {
+            font-family: var(--mono);
+            color: var(--text);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--amber);
+        }
+
+        .dot.ok { background: var(--green); }
+        .dot.err { background: var(--red); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+            background: #2563eb;
+            white-space: nowrap;
+            transition: opacity 0.15s, transform 0.1s;
+        }
+
+        .btn:hover { opacity: 0.92; }
+        .btn:active { transform: scale(0.98); }
+        .btn.sm { padding: 5px 9px; font-size: 11.5px; }
+        .btn.green { background: #16a34a; }
+        .btn.amber { background: #d97706; }
+        .btn.danger { background: #dc2626; }
+        .btn.ghost {
+            background: var(--card);
+            border-color: var(--border-strong);
+            color: var(--text);
+        }
+        .btn.listen {
+            background: linear-gradient(135deg, #7c3aed, #2563eb);
+        }
+        .btn.listen.on {
+            animation: mic-pulse 1s infinite;
+        }
+
+        @keyframes mic-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7); }
+            100% { box-shadow: 0 0 0 11px rgba(124, 58, 237, 0); }
+        }
+
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 9px;
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 860px) {
+            .kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        .kpi {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 11px;
+        }
+
+        .kpi-label {
+            font-size: 10.5px;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .kpi-val {
+            font-family: var(--mono);
+            font-variant-numeric: tabular-nums;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .kpi-val.cyan { color: var(--cyan); }
+        .kpi-val.good { color: #4ade80; }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
+            gap: 14px;
+            align-items: start;
+        }
+
+        .layout > div {
+            min-width: 0;
+        }
+
+        @media (max-width: 920px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            padding: 13px 14px;
+            margin-bottom: 12px;
+        }
+
+        .card:last-child { margin-bottom: 0; }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .card-head h3 {
+            margin: 0;
+            font-size: 13.5px;
+            font-weight: 700;
+        }
+
+        .seg-tabs {
+            display: inline-flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .seg-tab {
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            padding: 4px 9px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .seg-tab.active {
+            background: rgba(0, 242, 206, 0.16);
+            color: var(--cyan);
+        }
+
+        /* 3D EMO Robot Centerpiece */
+        .emo-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 14px 8px 8px;
+            perspective: 950px;
+            user-select: none;
+            background: radial-gradient(280px 150px at 50% 42%, rgba(0, 242, 206, 0.09), transparent 72%);
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.08);
+        }
+
+        .emo-rig {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-style: preserve-3d;
+            transition: transform 0.14s ease-out;
+        }
+
+        .emo-rig.petted { animation: emo-wiggle 0.65s ease-in-out; }
+
+        @keyframes emo-wiggle {
+            0%, 100% { transform: rotateZ(0deg) scale(1); }
+            25% { transform: rotateZ(-5deg) scale(1.04); }
+            55% { transform: rotateZ(5deg) scale(1.04); }
+            80% { transform: rotateZ(-2deg) scale(1.02); }
+        }
+
+        .emo-head-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .emo-head-band {
+            position: absolute;
+            top: -11px;
+            width: 244px;
+            height: 86px;
+            border-top: 8px solid #2b3242;
+            border-left: 7px solid #222736;
+            border-right: 7px solid #222736;
+            border-radius: 130px 130px 0 0;
+            pointer-events: none;
+        }
+
+        .emo-ear {
+            width: 20px;
+            height: 70px;
+            background: linear-gradient(180deg, #2b3140, #12161f);
+            border: 2px solid var(--cyan);
+            box-shadow: 0 0 12px rgba(0, 242, 206, 0.45);
+            border-radius: 11px;
+            margin: 0 -5px;
+            z-index: 1;
+        }
+
+        .emo-ear.speaking {
+            border-color: var(--green);
+            box-shadow: 0 0 18px rgba(34, 197, 94, 0.75);
+        }
+
+        .emo-shell {
+            position: relative;
+            z-index: 2;
+            padding: 11px;
+            border-radius: 30px;
+            background: linear-gradient(145deg, #2d3343, #11141c 65%);
+            border: 2px solid #475569;
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.65), inset 0 2px 3px rgba(255, 255, 255, 0.14);
+        }
+
+        .emo-bezel {
+            padding: 5px;
+            border-radius: 21px;
+            background: linear-gradient(135deg, #cbd5e1, #475569 50%, #94a3b8);
+        }
+
+        .emo-bezel canvas {
+            width: 256px;
+            max-width: 100%;
+            aspect-ratio: 4 / 3;
+            display: block;
+            border-radius: 16px;
+            background: #000;
+        }
+
+        .emo-feet {
+            display: flex;
+            gap: 28px;
+            margin-top: -4px;
+        }
+
+        .emo-ankle {
+            width: 20px;
+            height: 14px;
+            margin: 0 auto;
+            background: linear-gradient(90deg, #1e2433, #333c52, #1e2433);
+        }
+
+        .emo-foot {
+            width: 62px;
+            height: 20px;
+            border-radius: 12px 12px 7px 7px;
+            background: linear-gradient(180deg, #2e3547, #141822);
+            border-bottom: 3px solid #6366f1;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.7);
+        }
+
+        .stage {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #05070c;
+            border: 1px solid var(--border-strong);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .stage-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 3;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(7, 11, 20, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            font-size: 10.5px;
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .stage img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .stage canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .notice-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 7px 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: rgba(245, 158, 11, 0.14);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            color: #fde68a;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .chat-log {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            height: 290px;
+            overflow-y: auto;
+            padding: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+
+        .msg {
+            display: flex;
+            flex-direction: column;
+            max-width: 86%;
+        }
+
+        .msg.user { align-self: flex-end; align-items: flex-end; }
+        .msg.bot, .msg.sys { align-self: flex-start; }
+
+        .bubble {
+            padding: 7px 11px;
+            border-radius: 13px;
+            font-size: 12.5px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .msg.user .bubble {
+            background: #2563eb;
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg.bot .bubble {
+            background: #1e293b;
+            color: var(--text);
+            border: 1px solid var(--border-strong);
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg.sys .bubble {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fcd34d;
+            font-size: 11.5px;
+        }
+
+        .msg .ts {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .chip {
+            border: 1px solid var(--border-strong);
+            background: var(--surface);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 4px 9px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .chip.active {
+            background: rgba(0, 242, 206, 0.16);
+            border-color: var(--cyan);
+            color: #ccfbf1;
+        }
+
+        .qchip {
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            background: rgba(56, 189, 248, 0.08);
+            color: #bae6fd;
+            border-radius: 999px;
+            padding: 3px 9px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .qchip:hover { background: rgba(56, 189, 248, 0.2); }
+
+        .row {
+            display: flex;
+            gap: 7px;
+            margin-top: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 140px;
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border-strong);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 12.5px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            min-width: 110px;
+            accent-color: var(--cyan);
+        }
+
+        .val-pill {
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--cyan);
+            background: rgba(0, 242, 206, 0.12);
+            border: 1px solid rgba(0, 242, 206, 0.28);
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-top: 8px;
+            font-size: 11.5px;
+            color: var(--muted);
+            flex-wrap: wrap;
+        }
+
+        .rms-meter {
+            width: 100%;
+            height: 6px;
+            background: #070b14;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .rms-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--green);
+            transition: width 0.15s ease;
+        }
+
+        .rms-fill.hot { background: linear-gradient(90deg, var(--cyan), #a855f7); }
+
+        .counts-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 24px;
+        }
+
+        .count-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 9px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .count-item b {
+            font-family: var(--mono);
+            color: #4ade80;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin: 6px 0 0;
+        }
+
+        details.json-drawer {
+            margin-top: 9px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        details.json-drawer summary {
+            padding: 7px 10px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        pre {
+            margin: 0;
+            padding: 9px 10px;
+            overflow: auto;
+            max-height: 130px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: #fde68a;
+            background: #060911;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-logo" aria-hidden="true">🤖</div>
+                <div>
+                    <h1>LUCK-BOT · AI Desk Robot Studio</h1>
+                    <p>RV1106G3 NPU Vision · TFT 2" ST7789 · Gemini Assistant</p>
+                </div>
+            </div>
+            <div class="topbar-actions">
+                <div class="pill">Owner <b id="ownerState">NO</b></div>
+                <div class="pill">Bot <b id="botState">idle</b></div>
+                <div class="pill">Gemini <b id="geminiState">OFF</b></div>
+                <div class="pill" id="sysPill" style="display:none">Sys <b id="sysHealth">-</b></div>
+                <div class="pill">TFT <b id="tftState">OFF</b></div>
+                <div class="pill">
+                    <span id="connDot" class="dot"></span>
+                    SSE <b id="conn">...</b>
+                </div>
+                <button id="toggleMask" class="btn sm green" type="button">Mask: ON</button>
+                <button id="toggleVid" class="btn sm ghost" type="button">
+                    <span id="toggleVidText">Tat Cam</span>
+                </button>
+            </div>
+        </header>
+
+        <section class="kpi-strip">
+            <div class="kpi"><div class="kpi-label">FPS Thuc</div><div class="kpi-val good"><span id="fps">0.0</span></div></div>
+            <div class="kpi"><div class="kpi-label">Cam FPS</div><div class="kpi-val cyan"><span id="cap">0.0</span></div></div>
+            <div class="kpi"><div class="kpi-label">Tong tre</div><div class="kpi-val"><span id="tot">0.0</span> <small>ms</small></div></div>
+            <div class="kpi"><div class="kpi-label">NPU</div><div class="kpi-val"><span id="npu">0.0</span> <small>ms</small></div></div>
+            <div class="kpi"><div class="kpi-label">Nguoi</div><div class="kpi-val"><span id="pc">0</span></div></div>
+            <div class="kpi"><div class="kpi-label">Vat the</div><div class="kpi-val"><span id="oc">0</span></div></div>
+        </section>
+
+        <div class="layout">
+            <div>
+                <div class="card">
+                    <div class="card-head">
+                        <h3>Man hinh 2" Dong bo &amp; Camera AI</h3>
+                        <div class="seg-tabs">
+                            <button id="viewDual" class="seg-tab active" type="button">Ca hai</button>
+                            <button id="viewBot" class="seg-tab" type="button">Robot TFT</button>
+                            <button id="viewCam" class="seg-tab" type="button">Camera AI</button>
+                        </div>
+                    </div>
+
+                    <div id="emoStage" class="emo-stage">
+                        <div id="emoRig" class="emo-rig">
+                            <div class="emo-head-wrap" id="emoPetZone" title="Bam de xoa dau Luck!">
+                                <div class="emo-head-band"></div>
+                                <div class="emo-ear" id="earL"></div>
+                                <div class="emo-shell">
+                                    <div class="emo-bezel">
+                                        <canvas id="tftSim" width="320" height="240"></canvas>
+                                    </div>
+                                </div>
+                                <div class="emo-ear" id="earR"></div>
+                            </div>
+                            <div class="emo-feet">
+                                <div><div class="emo-ankle"></div><div class="emo-foot"></div></div>
+                                <div><div class="emo-ankle"></div><div class="emo-foot"></div></div>
+                            </div>
+                        </div>
+                        <p class="hint">👋 Bam vao dau robot de xoa dau · Dong bo 100% voi man TFT 2"</p>
+                    </div>
+
+                    <div id="camBlock" style="margin-top:10px">
+                        <div id="stage" class="stage">
+                            <div id="stageBadge" class="stage-badge">LIVE STREAM</div>
+                            <img id="vid" src="/stream" alt="Live Stream" />
+                            <canvas id="ov"></canvas>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:10px">
+                        <div id="moodChips" class="chips"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <h3>Nhan dien Chu nhan &amp; Bo loc AI</h3>
+                        <span id="enrolledList" class="val-pill">None</span>
+                    </div>
+                    <div class="row" style="margin-top:0">
+                        <input id="ownerName" type="text" placeholder="Ten chu nhan (vd: Phong)" value="Owner" />
+                        <button id="enrollBtn" class="btn sm green" type="button">Enroll</button>
+                        <button id="clearBtn" class="btn sm danger" type="button">Clear</button>
+                        <button id="unlockBtn" class="btn sm amber" type="button">🔓 Mo khoa 5p</button>
+                    </div>
+                    <p id="enrollMsg" class="hint">Enrolled: <span id="enrolledHint">None</span></p>
+
+                    <div class="settings-row">
+                        <span>Confidence</span>
+                        <input id="confSlider" type="range" min="0.15" max="0.90" step="0.01" value="0.35" />
+                        <span id="confVal" class="val-pill">0.35</span>
+                    </div>
+
+                    <div id="classChips" class="chips" style="margin-top:8px"></div>
+                    <div class="row">
+                        <input id="customClasses" type="text" placeholder="vd: person, bottle, cup, cell phone" />
+                        <button id="applyClassesBtn" class="btn sm" type="button">Ap dung</button>
+                    </div>
+                    <div id="countsBox" class="counts-box" style="margin-top:8px"></div>
+
+                    <details class="json-drawer">
+                        <summary>
+                            <span>Raw NPU Output (JSON)</span>
+                            <span>Seq #<span id="seqNum">0</span></span>
+                        </summary>
+                        <pre id="out">Loading...</pre>
+                    </details>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-head">
+                        <h3>Tro ly Giong noi Luck · Gemini</h3>
+                        <div style="display:flex;gap:5px;flex-wrap:wrap">
+                            <button id="webVoiceBtn" class="btn sm listen" type="button">🎙 Noi tren Web</button>
+                            <button id="webWakeBtn" class="btn sm ghost" type="button">👂 "Hey Luck" (Web)</button>
+                            <button id="listenBtn" class="btn sm" type="button">🎤 Mic Mach</button>
+                            <button id="faceCheckBtn" class="btn sm ghost" type="button">🪪 Soi mat</button>
+                            <button id="clearChatBtn" class="btn sm ghost" type="button">🧹 Xoa</button>
+                        </div>
+                    </div>
+
+                    <div id="noticeBar" class="notice-bar">
+                        <span id="noticeText"></span>
+                    </div>
+
+                    <div id="quickPrompts" class="chips" style="margin-bottom:8px"></div>
+                    <div id="chatLog" class="chat-log"></div>
+
+                    <div class="row" style="margin-top:0">
+                        <input id="chatInput" type="text" placeholder="Bam 'Noi tren Web', 'Mic Mach', hoac go cau hoi..." />
+                        <button id="chatBtn" class="btn green" type="button">Gui</button>
+                    </div>
+
+                    <div class="settings-row">
+                        <span>Loa</span>
+                        <input id="volSlider" type="range" min="10" max="60" step="5" value="60" />
+                        <span id="volVal" class="val-pill">60%</span>
+                    </div>
+
+                    <div class="settings-row">
+                        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+                            <input id="ttsToggle" type="checkbox" checked /> Giong Gemini TTS
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+                            <input id="webTtsToggle" type="checkbox" /> 🔊 Doc tren Web
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+                            <input id="autoVadToggle" type="checkbox" /> Tu dong VAD Mic mach
+                        </label>
+                    </div>
+
+                    <div id="vadBox" style="display:none">
+                        <div class="settings-row">
+                            <span>Nguong VAD</span>
+                            <input id="micThreshSlider" type="range" min="400" max="4000" step="50" value="1400" />
+                            <span id="micThreshVal" class="val-pill">1400</span>
+                        </div>
+                        <div class="rms-meter"><div id="rmsFill" class="rms-fill"></div></div>
+                        <p class="hint">Mic mach: <span id="lastAudioIn">-</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const stage = document.getElementById('stage');
+        const img = document.getElementById('vid');
+        const cv = document.getElementById('ov');
+        const ctx = cv.getContext('2d');
+        const maskCanvas = document.createElement('canvas');
+        const maskCtx = maskCanvas.getContext('2d');
+        const MASK_COLORS = [
+            [0, 242, 206], [74, 222, 128], [56, 189, 248], [251, 191, 36],
+            [244, 114, 182], [167, 139, 250], [248, 113, 113], [45, 212, 191]
+        ];
+
+        const toggleBtn = document.getElementById('toggleVid');
+        const toggleVidText = document.getElementById('toggleVidText');
+        const toggleMaskBtn = document.getElementById('toggleMask');
+        const stageBadge = document.getElementById('stageBadge');
+        const connEl = document.getElementById('conn');
+        const connDot = document.getElementById('connDot');
+        const confSlider = document.getElementById('confSlider');
+        const confVal = document.getElementById('confVal');
+        const classChips = document.getElementById('classChips');
+        const customClasses = document.getElementById('customClasses');
+        const applyClassesBtn = document.getElementById('applyClassesBtn');
+        const countsBox = document.getElementById('countsBox');
+        const ownerNameInput = document.getElementById('ownerName');
+        const enrollBtn = document.getElementById('enrollBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const unlockBtn = document.getElementById('unlockBtn');
+        const enrollMsg = document.getElementById('enrollMsg');
+        const enrolledListEl = document.getElementById('enrolledList');
+
+        const chatLogEl = document.getElementById('chatLog');
+        const quickPromptsEl = document.getElementById('quickPrompts');
+        const chatInput = document.getElementById('chatInput');
+        const chatBtn = document.getElementById('chatBtn');
+        const webVoiceBtn = document.getElementById('webVoiceBtn');
+        const webWakeBtn = document.getElementById('webWakeBtn');
+        const listenBtn = document.getElementById('listenBtn');
+        const faceCheckBtn = document.getElementById('faceCheckBtn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const moodChips = document.getElementById('moodChips');
+        const volSlider = document.getElementById('volSlider');
+        const volVal = document.getElementById('volVal');
+        const ttsToggle = document.getElementById('ttsToggle');
+        const webTtsToggle = document.getElementById('webTtsToggle');
+        const autoVadToggle = document.getElementById('autoVadToggle');
+        const vadBox = document.getElementById('vadBox');
+        const micThreshSlider = document.getElementById('micThreshSlider');
+        const micThreshVal = document.getElementById('micThreshVal');
+        const rmsFill = document.getElementById('rmsFill');
+        const noticeBar = document.getElementById('noticeBar');
+        const noticeText = document.getElementById('noticeText');
+
+        const emoStage = document.getElementById('emoStage');
+        const camBlock = document.getElementById('camBlock');
+        const emoRig = document.getElementById('emoRig');
+        const emoPetZone = document.getElementById('emoPetZone');
+        const earL = document.getElementById('earL');
+        const earR = document.getElementById('earR');
+        const tftSim = document.getElementById('tftSim');
+        const tftCtx = tftSim.getContext('2d');
+
+        const PRESET_CLASSES = ['person', 'cell phone', 'laptop', 'bottle', 'cup', 'chair', 'book', 'backpack'];
+        const MOOD_SCENES = [
+            ['auto', 'Tu dong'],
+            ['happy', '😊 Vui ve'],
+            ['curious', '🧐 To mo'],
+            ['angry', '😠 Cau may'],
+            ['drunk', '🍺 Dang say'],
+            ['fly', '🪰 Con ruoi'],
+            ['love', '❤️ Tha tim'],
+            ['cool', '😎 Kinh ngau'],
+            ['sleep', '😴 Ngu'],
+        ];
+        const QUICK_PROMPTS = [
+            ['🌤 Thoi tiet', 'Thoi tiet Ha Noi hom nay the nao?'],
+            ['👀 Tren ban co gi?', 'Nhin camera xem tren ban dang co gi?'],
+            ['🍺 Gia vo say', 'Hay gia vo dang say ruou di'],
+            ['🪰 Bat con ruoi', 'Bat con ruoi bay qua di'],
+            ['😎 Kinh ngau', 'Deo kinh ngau len nao'],
+        ];
+
+        let previewOn = true;
+        let maskEnabled = true;
+        let activeClasses = new Set();
+        let activeScene = 'auto';
+        let lastFrameData = null;
+        let lastChatKey = '';
+        let lastSpokenTs = 0;
+
+        // View tabs (Dual / Robot TFT / Camera AI)
+        const viewDual = document.getElementById('viewDual');
+        const viewBot = document.getElementById('viewBot');
+        const viewCam = document.getElementById('viewCam');
+        function setViewMode(m) {
+            viewDual.classList.toggle('active', m === 'dual');
+            viewBot.classList.toggle('active', m === 'bot');
+            viewCam.classList.toggle('active', m === 'cam');
+            emoStage.style.display = m === 'cam' ? 'none' : 'flex';
+            camBlock.style.display = m === 'bot' ? 'none' : 'block';
+        }
+        viewDual.addEventListener('click', () => setViewMode('dual'));
+        viewBot.addEventListener('click', () => setViewMode('bot'));
+        viewCam.addEventListener('click', () => setViewMode('cam'));
+
+        for (const [label, promptText] of QUICK_PROMPTS) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'qchip';
+            b.textContent = label;
+            b.addEventListener('click', () => {
+                chatInput.value = promptText;
+                sendChat();
+            });
+            quickPromptsEl.appendChild(b);
+        }
+
+        function renderMoodChips() {
+            moodChips.textContent = '';
+            for (const [id, label] of MOOD_SCENES) {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'chip' + (activeScene === id ? ' active' : '');
+                b.textContent = label;
+                b.addEventListener('click', async () => {
+                    activeScene = id;
+                    renderMoodChips();
+                    try {
+                        await fetch('/api/mood', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ scene: id }),
+                        });
+                    } catch (e) { }
+                });
+                moodChips.appendChild(b);
+            }
+        }
+
+        function getImgRect(srcW, srcH) {
+            const cw = stage.clientWidth, ch = stage.clientHeight;
+            const nw = (previewOn && img.naturalWidth) ? img.naturalWidth : (srcW || 320);
+            const nh = (previewOn && img.naturalHeight) ? img.naturalHeight : (srcH || 240);
+            const scale = Math.min(cw / nw, ch / nh);
+            const rw = nw * scale;
+            const rh = nh * scale;
+            return { cw, ch, ox: (cw - rw) * 0.5, oy: (ch - rh) * 0.5, sx: rw / (srcW || nw), sy: rh / (srcH || nh) };
+        }
+
+        function drawMask(m, rgb, rectInfo) {
+            if (!m || !m.b64 || !m.w || !m.h || !Array.isArray(m.rect) || m.rect.length < 4) return;
+            const mw = m.w | 0, mh = m.h | 0;
+            if (mw <= 0 || mh <= 0) return;
+            let binStr;
+            try { binStr = atob(m.b64); } catch (e) { return; }
+            if (maskCanvas.width !== mw || maskCanvas.height !== mh) { maskCanvas.width = mw; maskCanvas.height = mh; }
+            const imgData = maskCtx.createImageData(mw, mh);
+            const px = imgData.data;
+            const [r, g, b] = rgb;
+            const total = mw * mh;
+            for (let i = 0; i < total; i++) {
+                const byteIdx = i >> 3;
+                if (byteIdx >= binStr.length) break;
+                if ((binStr.charCodeAt(byteIdx) >> (i & 7)) & 1) {
+                    const p = i << 2;
+                    px[p] = r; px[p + 1] = g; px[p + 2] = b; px[p + 3] = 108;
+                }
+            }
+            maskCtx.putImageData(imgData, 0, 0);
+            const [rx1, ry1, rx2, ry2] = m.rect;
+            const dx = rectInfo.ox + rx1 * rectInfo.sx, dy = rectInfo.oy + ry1 * rectInfo.sy;
+            const dw = (rx2 - rx1) * rectInfo.sx, dh = (ry2 - ry1) * rectInfo.sy;
+            if (dw > 0 && dh > 0) ctx.drawImage(maskCanvas, dx, dy, dw, dh);
+        }
+
+        function drawDets(d) {
+            if (!d || camBlock.style.display === 'none') return;
+            const rectInfo = getImgRect(d.w || 320, d.h || 240);
+            const { cw, ch, ox, oy, sx, sy } = rectInfo;
+            if (!cw || !ch) return;
+            if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+            ctx.clearRect(0, 0, cw, ch);
+
+            for (const o of (d.dets || [])) {
+                const rgb = MASK_COLORS[(o.cls || 0) % MASK_COLORS.length];
+                if (maskEnabled && o.mask) drawMask(o.mask, rgb, rectInfo);
+                const [x1, y1, x2, y2] = o.box || [0, 0, 0, 0];
+                const bx = ox + x1 * sx, by = oy + y1 * sy, bw = (x2 - x1) * sx, bh = (y2 - y1) * sy;
+                const color = o.label === 'person' ? '#4ade80' : `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+                ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
+                ctx.font = 'bold 11px monospace'; ctx.fillStyle = color;
+                ctx.fillText(`${o.label} ${((o.score || 0) * 100).toFixed(0)}%`, bx + 4, Math.max(13, by - 4));
+            }
+            for (const p of (d.people || [])) {
+                const [x1, y1, x2, y2] = p.box || [0, 0, 0, 0];
+                if (x2 <= x1 || y2 <= y1) continue;
+                const bx = ox + x1 * sx, by = oy + y1 * sy, bw = (x2 - x1) * sx, bh = (y2 - y1) * sy;
+                const color = p.is_owner ? '#22c55e' : '#f59e0b';
+                ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
+                const simTxt = p.sim ? ` ${(p.sim * 100).toFixed(0)}%` : '';
+                ctx.font = 'bold 11px monospace'; ctx.fillStyle = color;
+                ctx.fillText(`${p.name || 'Person'}${simTxt}`, bx + 4, Math.min(ch - 5, by + bh + 13));
+            }
+        }
+
+        function renderChips() {
+            classChips.textContent = '';
+            const allBtn = document.createElement('button');
+            allBtn.type = 'button';
+            allBtn.className = 'chip' + (activeClasses.size === 0 ? ' active' : '');
+            allBtn.textContent = 'Tat ca (80)';
+            allBtn.addEventListener('click', () => {
+                activeClasses.clear(); customClasses.value = ''; renderChips(); pushConfig({ classes: [] });
+            });
+            classChips.appendChild(allBtn);
+
+            for (const cls of PRESET_CLASSES) {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'chip' + (activeClasses.has(cls) ? ' active' : '');
+                b.textContent = cls;
+                b.addEventListener('click', () => {
+                    if (activeClasses.has(cls)) activeClasses.delete(cls); else activeClasses.add(cls);
+                    customClasses.value = Array.from(activeClasses).join(', ');
+                    renderChips(); pushConfig({ classes: Array.from(activeClasses) });
+                });
+                classChips.appendChild(b);
+            }
+        }
+
+        function renderCounts(people, counts) {
+            countsBox.textContent = '';
+            for (const p of (people || [])) {
+                const item = document.createElement('div');
+                item.className = 'count-item';
+                item.style.borderColor = p.is_owner ? '#22c55e' : '#f59e0b';
+                const t = document.createElement('span'); t.textContent = p.name;
+                const b = document.createElement('b'); b.textContent = p.sim ? `${(p.sim * 100).toFixed(0)}%` : 'USER';
+                item.appendChild(t); item.appendChild(b); countsBox.appendChild(item);
+            }
+            for (const [label, cnt] of Object.entries(counts || {})) {
+                if (label === 'person') continue;
+                const item = document.createElement('div'); item.className = 'count-item';
+                const t = document.createElement('span'); t.textContent = label;
+                const b = document.createElement('b'); b.textContent = 'x ' + cnt;
+                item.appendChild(t); item.appendChild(b); countsBox.appendChild(item);
+            }
+            if (!countsBox.childNodes.length) {
+                const empty = document.createElement('span'); empty.className = 'hint';
+                empty.textContent = 'Chua phat hien nguoi hoac do vat.'; countsBox.appendChild(empty);
+            }
+        }
+
+        function syncConfigFromData(d) {
+            if (!d) return;
+            if (typeof d.conf === 'number') { confSlider.value = d.conf.toFixed(2); confVal.textContent = d.conf.toFixed(2); }
+            if (Array.isArray(d.classes)) { activeClasses = new Set(d.classes); customClasses.value = d.classes.join(', '); renderChips(); }
+            if (typeof d.mask === 'boolean') {
+                maskEnabled = d.mask;
+                toggleMaskBtn.textContent = maskEnabled ? 'Mask: ON' : 'Mask: OFF';
+                toggleMaskBtn.className = maskEnabled ? 'btn sm green' : 'btn sm ghost';
+            }
+            if (Array.isArray(d.enrolled)) {
+                const txt = d.enrolled.length ? d.enrolled.join(', ') : 'None';
+                enrolledListEl.textContent = txt;
+                const eh = document.getElementById('enrolledHint'); if (eh) eh.textContent = txt;
+            }
+        }
+
+        async function loadConfig() {
+            try { const r = await fetch('/api/config'); syncConfigFromData(await r.json()); } catch (e) { }
+        }
+        async function pushConfig(payload) {
+            try {
+                const r = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const d = await r.json(); if (d.ok) syncConfigFromData(d);
+            } catch (e) { }
+        }
+        async function postSettings(payload) {
+            try { await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch (e) { }
+        }
+
+        enrollBtn.addEventListener('click', async () => {
+            const name = ownerNameInput.value.trim();
+            try {
+                const r = await fetch('/enroll', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+                const d = await r.json(); enrollMsg.textContent = d.msg || '';
+                if (Array.isArray(d.enrolled)) enrolledListEl.textContent = d.enrolled.length ? d.enrolled.join(', ') : 'None';
+            } catch (e) { enrollMsg.textContent = 'Loi goi /enroll'; }
+        });
+        clearBtn.addEventListener('click', async () => {
+            try {
+                const r = await fetch('/clear', { method: 'POST' });
+                const d = await r.json(); enrollMsg.textContent = d.msg || ''; enrolledListEl.textContent = 'None';
+            } catch (e) { enrollMsg.textContent = 'Loi goi /clear'; }
+        });
+        unlockBtn.addEventListener('click', async () => {
+            try { await fetch('/api/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ minutes: 5 }) }); } catch (e) { }
+        });
+        faceCheckBtn.addEventListener('click', async () => {
+            try { await fetch('/api/face_check', { method: 'POST' }); } catch (e) { }
+        });
+        clearChatBtn.addEventListener('click', async () => {
+            try { await fetch('/api/clear_chat', { method: 'POST' }); } catch (e) { }
+        });
+        listenBtn.addEventListener('click', async () => {
+            try { await fetch('/api/listen', { method: 'POST' }); } catch (e) { }
+        });
+
+        async function sendChatText(text) {
+            const clean = (text || '').trim();
+            if (!clean) return;
+            try {
+                await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: clean }),
+                });
+            } catch (e) { }
+        }
+        function sendChat() {
+            const t = chatInput.value.trim();
+            if (!t) return;
+            chatInput.value = '';
+            sendChatText(t);
+        }
+        chatBtn.addEventListener('click', sendChat);
+        chatInput.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') sendChat(); });
+
+        // Free Browser Vietnamese SpeechRecognition (Zero API cost for Wake Word & PTT!)
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let wakeRec = null;
+        let wakeOn = false;
+        let pttRec = null;
+
+        if (!SpeechRec) {
+            webVoiceBtn.title = 'Trinh duyet khong ho tro SpeechRecognition (dung Chrome/Edge)';
+            webWakeBtn.style.display = 'none';
+        }
+
+        webVoiceBtn.addEventListener('click', () => {
+            if (!SpeechRec) { alert('Hay dung Chrome hoac Edge de noi truc tiep tren Web, hoac dung nut Mic Mach.'); return; }
+            if (pttRec) { try { pttRec.stop(); } catch (e) { } return; }
+            const rec = new SpeechRec();
+            pttRec = rec;
+            rec.lang = 'vi-VN';
+            rec.interimResults = false;
+            rec.maxAlternatives = 1;
+            webVoiceBtn.classList.add('on');
+            webVoiceBtn.textContent = '🔴 Dang nghe...';
+            rec.onresult = (ev) => {
+                const txt = ev.results[0][0].transcript;
+                if (txt) sendChatText(txt);
+            };
+            rec.onend = () => {
+                pttRec = null;
+                webVoiceBtn.classList.remove('on');
+                webVoiceBtn.textContent = '🎙 Noi tren Web';
+            };
+            rec.onerror = () => { pttRec = null; webVoiceBtn.classList.remove('on'); webVoiceBtn.textContent = '🎙 Noi tren Web'; };
+            rec.start();
+        });
+
+        function stopWakeRec() {
+            wakeOn = false;
+            webWakeBtn.classList.remove('on', 'green');
+            webWakeBtn.classList.add('ghost');
+            webWakeBtn.textContent = '👂 "Hey Luck" (Web)';
+            if (wakeRec) { try { wakeRec.stop(); } catch (e) { } wakeRec = null; }
+        }
+
+        function startWakeRec() {
+            if (!SpeechRec) return;
+            wakeOn = true;
+            webWakeBtn.classList.remove('ghost');
+            webWakeBtn.classList.add('green', 'on');
+            webWakeBtn.textContent = '👂 Dang cho "Hey Luck"...';
+            const rec = new SpeechRec();
+            wakeRec = rec;
+            rec.lang = 'vi-VN';
+            rec.continuous = true;
+            rec.interimResults = false;
+            rec.onresult = (ev) => {
+                const txt = (ev.results[ev.results.length - 1][0].transcript || '').trim();
+                const low = txt.toLowerCase();
+                const m = low.match(/(?:hey luck|hey luc|hay luck|luck oi|lắc ơi|lắc|hey lock)[,\s]*(.*)/i);
+                if (m) {
+                    const q = (m[1] || '').trim();
+                    sendChatText(q || 'Chao Luck');
+                }
+            };
+            rec.onend = () => { if (wakeOn) setTimeout(() => { if (wakeOn) startWakeRec(); }, 300); };
+            rec.onerror = () => { if (wakeOn) setTimeout(() => { if (wakeOn) startWakeRec(); }, 1000); };
+            try { rec.start(); } catch (e) { stopWakeRec(); }
+        }
+
+        webWakeBtn.addEventListener('click', () => {
+            if (wakeOn) stopWakeRec(); else startWakeRec();
+        });
+
+        function speakWeb(text) {
+            if (!webTtsToggle.checked || !('speechSynthesis' in window) || !text) return;
+            try {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'vi-VN'; u.rate = 1.05;
+                window.speechSynthesis.speak(u);
+            } catch (e) { }
+        }
+
+        function renderChatLog(log) {
+            if (!Array.isArray(log)) return;
+            const key = log.length + '|' + (log.length ? log[log.length - 1].ts : '');
+            if (key === lastChatKey) return;
+            lastChatKey = key;
+            chatLogEl.textContent = '';
+            if (!log.length) {
+                const e = document.createElement('div');
+                e.className = 'hint';
+                e.textContent = 'San sang. Bam "🎙 Noi tren Web", "🎤 Mic Mach", hoac go cau hoi ben duoi.';
+                chatLogEl.appendChild(e);
+                return;
+            }
+            const lastMsg = log[log.length - 1];
+            if (lastMsg && lastMsg.role === 'bot' && lastMsg.ts > lastSpokenTs) {
+                lastSpokenTs = lastMsg.ts;
+                speakWeb(lastMsg.text);
+            }
+            for (const m of log) {
+                const row = document.createElement('div'); row.className = 'msg ' + (m.role || 'sys');
+                const b = document.createElement('div'); b.className = 'bubble'; b.textContent = m.text || '';
+                const t = document.createElement('span'); t.className = 'ts';
+                t.textContent = (m.role === 'user' ? 'Ban' : m.role === 'bot' ? 'Luck' : 'He thong') + ' · ' + (m.t || '');
+                row.appendChild(b); row.appendChild(t); chatLogEl.appendChild(row);
+            }
+            chatLogEl.scrollTop = chatLogEl.scrollHeight;
+        }
+
+        volSlider.addEventListener('input', () => { volVal.textContent = volSlider.value + '%'; });
+        volSlider.addEventListener('change', () => postSettings({ volume: Number(volSlider.value) }));
+        micThreshSlider.addEventListener('input', () => { micThreshVal.textContent = micThreshSlider.value; });
+        micThreshSlider.addEventListener('change', () => postSettings({ mic_thresh: Number(micThreshSlider.value) }));
+        ttsToggle.addEventListener('change', () => postSettings({ tts: ttsToggle.checked }));
+        autoVadToggle.addEventListener('change', () => {
+            vadBox.style.display = autoVadToggle.checked ? 'block' : 'none';
+            postSettings({ mic_auto_vad: autoVadToggle.checked });
+        });
+
+        toggleMaskBtn.addEventListener('click', () => {
+            maskEnabled = !maskEnabled;
+            toggleMaskBtn.textContent = maskEnabled ? 'Mask: ON' : 'Mask: OFF';
+            toggleMaskBtn.className = maskEnabled ? 'btn sm green' : 'btn sm ghost';
+            pushConfig({ mask: maskEnabled });
+        });
+        confSlider.addEventListener('input', () => { confVal.textContent = Number(confSlider.value).toFixed(2); });
+        confSlider.addEventListener('change', () => pushConfig({ conf: Number(confSlider.value) }));
+        applyClassesBtn.addEventListener('click', () => {
+            const list = customClasses.value.split(',').map(s => s.trim()).filter(Boolean);
+            activeClasses = new Set(list); renderChips(); pushConfig({ classes: list });
+        });
+        toggleBtn.addEventListener('click', () => {
+            previewOn = !previewOn;
+            if (previewOn) {
+                img.style.display = 'block'; img.src = '/stream?t=' + Date.now();
+                toggleVidText.textContent = 'Tat Cam'; stageBadge.textContent = 'LIVE STREAM';
+            } else {
+                img.removeAttribute('src'); img.style.display = 'none';
+                toggleVidText.textContent = 'Bat Cam'; stageBadge.textContent = 'CAMERA OFF';
+            }
+        });
+
+        // 3D Robot Interaction + Synchronized Canvas Mirror
+        let mouseLookX = 0, mouseLookY = 0, simTick = 0;
+        emoStage.addEventListener('mousemove', (ev) => {
+            const rect = emoStage.getBoundingClientRect();
+            mouseLookX = Math.max(-1, Math.min(1, ((ev.clientX - rect.left) / rect.width - 0.5) * 2));
+            mouseLookY = Math.max(-1, Math.min(1, ((ev.clientY - rect.top) / rect.height - 0.5) * 2));
+            emoRig.style.transform = `rotateY(${(mouseLookX * 13).toFixed(1)}deg) rotateX(${(-mouseLookY * 9).toFixed(1)}deg)`;
+        });
+        emoStage.addEventListener('mouseleave', () => { mouseLookX = 0; mouseLookY = 0; emoRig.style.transform = ''; });
+        emoPetZone.addEventListener('click', async () => {
+            emoRig.classList.remove('petted'); void emoRig.offsetWidth; emoRig.classList.add('petted');
+            try { await fetch('/api/pet', { method: 'POST' }); } catch (e) { }
+        });
+
+        function drawEmoEye(cx, cy, ew, eh, r, mainCol, glowCol, hiCol, slantL, slantR, archBot) {
+            const x0 = cx - ew / 2, y0 = cy - eh / 2;
+            tftCtx.save();
+            tftCtx.shadowColor = glowCol; tftCtx.shadowBlur = 22;
+            tftCtx.fillStyle = mainCol;
+            tftCtx.beginPath(); tftCtx.roundRect(x0, y0, ew, eh, r); tftCtx.fill();
+            tftCtx.shadowBlur = 0;
+            if (hiCol && eh >= 20) {
+                tftCtx.fillStyle = hiCol; tftCtx.globalAlpha = 0.52;
+                tftCtx.beginPath(); tftCtx.roundRect(x0 + 6, y0 + 4, ew - 12, Math.max(5, eh * 0.2), r * 0.5); tftCtx.fill();
+                tftCtx.globalAlpha = 1;
+            }
+            tftCtx.fillStyle = 'rgba(0,0,0,0.18)';
+            for (let yy = y0 + 3; yy < y0 + eh - 2; yy += 4) tftCtx.fillRect(x0 + 2, yy, ew - 4, 1);
+            if (slantL > 0 || slantR > 0) {
+                tftCtx.fillStyle = '#000';
+                tftCtx.beginPath(); tftCtx.moveTo(x0 - 2, y0 - 2); tftCtx.lineTo(x0 + ew + 2, y0 - 2);
+                tftCtx.lineTo(x0 + ew + 2, y0 + slantR); tftCtx.lineTo(x0 - 2, y0 + slantL); tftCtx.closePath(); tftCtx.fill();
+            }
+            if (archBot > 0) {
+                tftCtx.fillStyle = '#000';
+                tftCtx.beginPath(); tftCtx.moveTo(x0 - 2, y0 + eh + 2);
+                tftCtx.quadraticCurveTo(cx, y0 + eh - archBot * 1.9, x0 + ew + 2, y0 + eh + 2);
+                tftCtx.closePath(); tftCtx.fill();
+            }
+            tftCtx.restore();
+        }
+
+        function renderTftSim() {
+            if (emoStage.style.display === 'none') return;
+            simTick++;
+            const d = lastFrameData || {};
+            const mood = d.bot_mood || 'idle';
+            const mode = d.display_state || mood || 'idle';
+            const showCap = !!d.show_caption || mood === 'listening' || mood === 'thinking' || mood === 'speaking';
+            earL.classList.toggle('speaking', mode === 'speaking' || mode === 'listening');
+            earR.classList.toggle('speaking', mode === 'speaking' || mode === 'listening');
+
+            tftCtx.fillStyle = '#000';
+            tftCtx.fillRect(0, 0, 320, 240);
+
+            if (mode === 'checking') {
+                tftCtx.fillStyle = d.owner_seen ? '#16a34a' : '#2563eb';
+                tftCtx.fillRect(0, 0, 320, 26);
+                tftCtx.fillStyle = '#fff'; tftCtx.font = 'bold 12px monospace';
+                tftCtx.fillText(d.owner_seen ? 'OWNER VERIFIED' : 'CHECKING FACE...', 10, 17);
+                tftCtx.strokeStyle = '#00f2ce'; tftCtx.lineWidth = 2; tftCtx.strokeRect(40, 40, 240, 165);
+                tftCtx.fillStyle = '#94a3b8'; tftCtx.fillText('Live Camera tren man TFT that', 54, 126);
+                return;
+            }
+
+            const lx = 102, rx = 218, cy = showCap ? 88 : 114, ew = 72, eh = 82;
+            const CYAN = '#00f2ce', CYAN_H = '#a5fff2';
+            const MINT = '#22f58c', MINT_H = '#bbffdc';
+            const PINK = '#ff46a5', PINK_H = '#ffb8df';
+            const RED = '#ff2d4b', RED_H = '#ff9baa';
+            const AMBER = '#faaf14', AMBER_H = '#ffe882';
+            const BLUE = '#3b9bff', BLUE_H = '#a5d7ff';
+
+            if (mode === 'happy' || mode === 'owner') {
+                const b = Math.sin(simTick * 0.5) * 4;
+                const col = d.owner_seen || mode === 'owner' ? MINT : CYAN;
+                const hi = d.owner_seen || mode === 'owner' ? MINT_H : CYAN_H;
+                drawEmoEye(lx, cy + b, ew + 4, eh - 4, 20, col, col, hi, 0, 0, 36);
+                drawEmoEye(rx, cy + b, ew + 4, eh - 4, 20, col, col, hi, 0, 0, 36);
+            } else if (mode === 'curious') {
+                const t = Math.sin(simTick * 0.2) * 5;
+                drawEmoEye(lx + t, cy - 6, ew + 6, eh + 10, 20, CYAN, CYAN, CYAN_H, 0, 0, 0);
+                drawEmoEye(rx + t, cy + 8, ew - 4, eh * 0.65, 16, CYAN, CYAN, CYAN_H, 8, 0, 0);
+            } else if (mode === 'angry' || mode === 'denied') {
+                const shk = (simTick % 2) ? -2 : 2;
+                drawEmoEye(lx + shk, cy, ew, eh - 6, 16, RED, RED, RED_H, 0, 30, 0);
+                drawEmoEye(rx + shk, cy, ew, eh - 6, 16, RED, RED, RED_H, 30, 0, 0);
+            } else if (mode === 'drunk') {
+                const wx = Math.sin(simTick * 0.35) * 7, wy = Math.cos(simTick * 0.28) * 5;
+                drawEmoEye(lx + wx, cy + wy, ew, eh - 6, 18, PINK, PINK, PINK_H, 32, 4, 0);
+                drawEmoEye(rx + wx, cy - wy, ew, eh - 6, 18, CYAN, CYAN, CYAN_H, 4, 32, 0);
+                tftCtx.fillStyle = '#22c55e'; tftCtx.fillRect(288, 98, 18, 28);
+                tftCtx.fillStyle = '#15803d'; tftCtx.fillRect(293, 86, 8, 12);
+                tftCtx.fillStyle = AMBER;
+                for (let k = 0; k < 3; k++) {
+                    const a = simTick * 0.3 + k * 2.1;
+                    tftCtx.beginPath(); tftCtx.arc(160 + Math.cos(a) * 74, cy - 48 + Math.sin(a) * 8, 3, 0, Math.PI * 2); tftCtx.fill();
+                }
+            } else if (mode === 'fly') {
+                const fx = 160 + Math.sin(simTick * 0.25) * 108;
+                const fy = cy - 12 + Math.sin(simTick * 0.5) * 32;
+                const gx = Math.max(-16, Math.min(16, (fx - 160) / 5));
+                const gy = Math.max(-14, Math.min(14, (fy - cy) / 4));
+                const lw = ew * (gx < -3 ? 1.1 : gx > 3 ? 0.9 : 1);
+                const rw = ew * (gx > 3 ? 1.1 : gx < -3 ? 0.9 : 1);
+                const sq = Math.abs(fx - 160) < 28 ? 12 : 0;
+                drawEmoEye(lx + gx, cy + gy, lw, eh - 4, 18, CYAN, CYAN, CYAN_H, sq, sq, 0);
+                drawEmoEye(rx + gx, cy + gy, rw, eh - 4, 18, CYAN, CYAN, CYAN_H, sq, sq, 0);
+                tftCtx.fillStyle = '#e2e8f0';
+                tftCtx.beginPath(); tftCtx.arc(fx - 4, fy - 3, 4, 0, Math.PI * 2); tftCtx.arc(fx + 4, fy - 3, 4, 0, Math.PI * 2); tftCtx.fill();
+                tftCtx.fillStyle = '#334155';
+                tftCtx.beginPath(); tftCtx.arc(fx, fy, 4, 0, Math.PI * 2); tftCtx.fill();
+            } else if (mode === 'love') {
+                tftCtx.save(); tftCtx.shadowColor = PINK; tftCtx.shadowBlur = 22;
+                tftCtx.fillStyle = PINK; tftCtx.font = 'bold 58px sans-serif';
+                tftCtx.fillText('❤', lx - 26, cy + 20); tftCtx.fillText('❤', rx - 26, cy + 20);
+                tftCtx.restore();
+            } else if (mode === 'cool') {
+                tftCtx.fillStyle = '#0f172a'; tftCtx.strokeStyle = CYAN; tftCtx.lineWidth = 3;
+                tftCtx.beginPath(); tftCtx.roundRect(50, cy - 32, 220, 64, 18); tftCtx.fill(); tftCtx.stroke();
+                tftCtx.fillStyle = CYAN;
+                tftCtx.beginPath(); tftCtx.roundRect(lx - 26, cy - 14, 52, 26, 8); tftCtx.fill();
+                tftCtx.beginPath(); tftCtx.roundRect(rx - 26, cy - 14, 52, 26, 8); tftCtx.fill();
+                tftCtx.fillStyle = CYAN_H;
+                tftCtx.fillRect(62 + ((simTick * 12) % 185), cy - 26, 10, 52);
+            } else if (mode === 'sleep') {
+                const bob = (simTick % 12) < 6 ? 0 : 2;
+                tftCtx.fillStyle = '#007d6e';
+                tftCtx.beginPath(); tftCtx.roundRect(lx - 34, cy + bob, 68, 9, 4); tftCtx.fill();
+                tftCtx.beginPath(); tftCtx.roundRect(rx - 34, cy + bob, 68, 9, 4); tftCtx.fill();
+                tftCtx.fillStyle = CYAN; tftCtx.font = 'bold 16px monospace';
+                tftCtx.fillText('Zzz', 206, cy - 18 - (simTick % 24));
+            } else if (mode === 'listening') {
+                const p = (simTick % 4) < 2 ? 4 : 0;
+                drawEmoEye(lx, cy, ew + 4 + p, eh + 6 + p, 20, BLUE, BLUE, BLUE_H, 0, 0, 0);
+                drawEmoEye(rx, cy, ew + 4 + p, eh + 6 + p, 20, BLUE, BLUE, BLUE_H, 0, 0, 0);
+                tftCtx.fillStyle = CYAN;
+                for (let i = 0; i < 5; i++) {
+                    const h = 8 + ((simTick + i) % 3) * 6;
+                    tftCtx.fillRect(128 + i * 14, cy + 56 - h / 2, 7, h);
+                }
+            } else if (mode === 'thinking') {
+                const sh = Math.sin(simTick * 0.45) * 14;
+                drawEmoEye(lx + sh, cy - 6, ew, eh, 18, AMBER, AMBER, AMBER_H, 0, 0, 0);
+                drawEmoEye(rx + sh, cy + 6, ew - 6, eh * 0.62, 16, AMBER, AMBER, AMBER_H, 8, 0, 0);
+            } else if (mode === 'speaking') {
+                const arch = 20 + ((simTick % 4) * 5);
+                drawEmoEye(lx, cy, ew + 2, eh, 20, CYAN, CYAN, CYAN_H, 0, 0, arch);
+                drawEmoEye(rx, cy, ew + 2, eh, 20, CYAN, CYAN, CYAN_H, 0, 0, arch);
+                tftCtx.fillStyle = MINT;
+                for (let i = 0; i < 7; i++) {
+                    const h = 8 + ((simTick + i) % 3) * 8;
+                    tftCtx.fillRect(118 + i * 12, cy + 56 - h / 2, 7, h);
+                }
+            } else {
+                // Calm EMO idle: blink every ~4.4s + follow mouse if hovering
+                const cyc = simTick % 44;
+                if (cyc === 42 || cyc === 43) {
+                    tftCtx.fillStyle = CYAN;
+                    tftCtx.beginPath(); tftCtx.roundRect(lx - 38, cy - 4, 76, 9, 4); tftCtx.fill();
+                    tftCtx.beginPath(); tftCtx.roundRect(rx - 38, cy - 4, 76, 9, 4); tftCtx.fill();
+                } else {
+                    const gx = Math.abs(mouseLookX) > 0.05 ? mouseLookX * 15 : (cyc >= 12 && cyc <= 20 ? -12 : cyc >= 26 && cyc <= 34 ? 12 : 0);
+                    const gy = mouseLookY * 9;
+                    const lw = ew * (gx < -3 ? 1.1 : gx > 3 ? 0.9 : 1);
+                    const rw = ew * (gx > 3 ? 1.1 : gx < -3 ? 0.9 : 1);
+                    drawEmoEye(lx + gx, cy + gy, lw, eh, 18, CYAN, CYAN, CYAN_H, 0, 0, 0);
+                    drawEmoEye(rx + gx, cy + gy, rw, eh, 18, CYAN, CYAN, CYAN_H, 0, 0, 0);
+                }
+            }
+
+            if (showCap) {
+                tftCtx.fillStyle = 'rgba(12, 18, 32, 0.92)';
+                tftCtx.strokeStyle = '#008c7d'; tftCtx.lineWidth = 1;
+                tftCtx.beginPath(); tftCtx.roundRect(8, 190, 304, 44, 10); tftCtx.fill(); tftCtx.stroke();
+                tftCtx.fillStyle = '#f1f5f9'; tftCtx.font = '11px monospace';
+                const txt = mood === 'listening' ? 'DANG NGHE... NOI CAU HOI!' : (mood === 'thinking' ? 'GEMINI DANG SUY NGHI...' : (d.last_bot_reply || ''));
+                tftCtx.fillText(txt.slice(0, 42), 16, 209);
+                if (txt.length > 42) tftCtx.fillText(txt.slice(42, 84), 16, 224);
+            }
+        }
+        setInterval(renderTftSim, 100);
+
+        function applyStatus(d) {
+            lastFrameData = d;
+            const people = d.people || [];
+            document.getElementById('fps').textContent = (d.fps || 0).toFixed(1);
+            document.getElementById('cap').textContent = (d.cap_fps || 0).toFixed(1);
+            document.getElementById('tot').textContent = (d.total_ms || 0).toFixed(1);
+            document.getElementById('npu').textContent = (d.npu_ms || 0).toFixed(1);
+            document.getElementById('pc').textContent = people.length;
+            document.getElementById('oc').textContent = (d.dets || []).length;
+            document.getElementById('seqNum').textContent = d.seq || 0;
+
+            const rem = d.owner_unlock_rem || 0;
+            document.getElementById('ownerState').textContent = d.owner_seen ? 'YES' : (rem > 0 ? `YES (${rem}s)` : 'NO');
+            document.getElementById('botState').textContent = d.display_state || d.bot_mood || 'idle';
+
+            const waitS = d.gemini_wait_until ? Math.ceil(d.gemini_wait_until - Date.now() / 1000) : 0;
+            const gMod = (d.gemini_model || 'gemini').replace('gemini-', 'g');
+            document.getElementById('geminiState').textContent = !d.gemini_ok ? 'NO KEY' : (waitS > 0 ? `WAIT ${waitS}s` : gMod);
+
+            if ((d.cpu_temp_c !== null && d.cpu_temp_c !== undefined) || (d.ram_free_mb !== null && d.ram_free_mb !== undefined)) {
+                document.getElementById('sysPill').style.display = 'inline-flex';
+                const tPart = (d.cpu_temp_c !== null && d.cpu_temp_c !== undefined) ? `${d.cpu_temp_c}C` : '';
+                const rPart = (d.ram_free_mb !== null && d.ram_free_mb !== undefined) ? `${d.ram_free_mb}M` : '';
+                document.getElementById('sysHealth').textContent = [tPart, rPart].filter(Boolean).join(' / ');
+            }
+
+            if (waitS > 0 || d.sys_notice) {
+                noticeBar.style.display = 'flex';
+                noticeText.textContent = waitS > 0 ? `⏳ Tam nghi ${waitS}s tranh vuot quota Gemini (429)` : d.sys_notice;
+            } else {
+                noticeBar.style.display = 'none';
+            }
+
+            if (d.bot_scene && d.bot_scene !== activeScene) {
+                activeScene = d.bot_scene;
+                renderMoodChips();
+            }
+
+            renderChatLog(d.chat_log);
+            listenBtn.classList.toggle('on', d.bot_mood === 'listening');
+            if (typeof d.volume_max === 'number') volSlider.max = d.volume_max;
+            if (typeof d.volume === 'number' && document.activeElement !== volSlider) {
+                volSlider.value = d.volume; volVal.textContent = d.volume + '%';
+            }
+            if (typeof d.tts_on === 'boolean') ttsToggle.checked = d.tts_on;
+            if (typeof d.mic_auto_vad === 'boolean') {
+                autoVadToggle.checked = d.mic_auto_vad;
+                vadBox.style.display = d.mic_auto_vad ? 'block' : 'none';
+            }
+            if (typeof d.mic_thresh === 'number' && document.activeElement !== micThreshSlider) {
+                micThreshSlider.value = d.mic_thresh; micThreshVal.textContent = d.mic_thresh;
+            }
+            const rms = d.mic_rms || 0, th = d.mic_thresh || 1400;
+            rmsFill.style.width = Math.min(100, Math.round((rms / 4000) * 100)) + '%';
+            rmsFill.classList.toggle('hot', rms >= th);
+
+            document.getElementById('tftState').textContent = d.tft_ok ? 'ON' : 'OFF';
+            document.getElementById('lastAudioIn').textContent = d.last_audio_in || '-';
+            document.getElementById('out').textContent = d.stdout || '';
+            if (Array.isArray(d.enrolled)) enrolledListEl.textContent = d.enrolled.length ? d.enrolled.join(', ') : 'None';
+
+            renderCounts(people, d.counts);
+            drawDets(d);
+        }
+
+        const es = new EventSource('/events');
+        es.onopen = () => { connEl.textContent = 'OK'; connDot.className = 'dot ok'; };
+        es.onerror = () => { connEl.textContent = 'WAIT'; connDot.className = 'dot err'; };
+        es.onmessage = (ev) => { try { applyStatus(JSON.parse(ev.data)); } catch (e) { } };
+
+        renderChips();
+        renderMoodChips();
+        renderChatLog([]);
+        loadConfig();
+    </script>
+</body>
+
+</html>

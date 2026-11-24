@@ -1,0 +1,27 @@
+#!/bin/sh
+# Tu khoi dong Luckfox Chatbot Vision khi cap nguon
+DIR=/root/npu_rt
+
+case "$1" in
+  start)
+    export LD_LIBRARY_PATH=/oem/usr/lib:/usr/lib:/lib
+    # Thu dong bo gio qua NTP (can cho SSL Gemini) - chay nen, khong chan boot
+    (sleep 8; command -v ntpd >/dev/null 2>&1 && ntpd -q -n -p pool.ntp.org) >/dev/null 2>&1 &
+    cd "$DIR" && nohup python3 "$DIR/main_node.py" > "$DIR/node.log" 2>&1 < /dev/null &
+    echo "luckfox_bot started"
+    ;;
+  stop)
+    pkill -f '[m]ain_node.py' 2>/dev/null
+    pkill -f '[r]knn_vision_daemon' 2>/dev/null
+    echo "luckfox_bot stopped"
+    ;;
+  restart)
+    "$0" stop
+    sleep 1
+    "$0" start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    ;;
+esac
+exit 0
